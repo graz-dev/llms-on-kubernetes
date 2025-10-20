@@ -242,6 +242,8 @@ spec:
 {{- end }}
 ```
 
+Delete the `hpa.yaml`, `serviceaccount.yaml` and `ingress.yaml` from the template folder of your chart.
+
 # Configure Argo and Istio
 
 Create the `app-vllm.yaml` in the root of the repo with the following content
