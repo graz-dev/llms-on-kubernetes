@@ -52,10 +52,8 @@ spec:
           readinessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.resources }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-          {{- end }}
           volumeMounts:
             - name: model-storage
               mountPath: {{ .Values.persistence.mountPath }}
