@@ -7,7 +7,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'https://github.com/YOUR-USERNAME/mlops-k8s-demo.git'
+    repoURL: 'https://github.com/graz-dev/llms-on-kubernetes.git'
     targetRevision: HEAD
     path: webui-chart
   destination:
