@@ -1,16 +1,19 @@
-# app-llama.yaml
+# app-vllm.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: llama-app # This is the release name!
+  name: vllm-app
   namespace: argocd
 spec:
   project: default
   source:
-    repoURL: 'https://github.com/graz-dev/llms-on-kubernetes.git'
+    repoURL: 'https://github.com/graz-dev/llms-on-kubernetes.git' 
     targetRevision: HEAD
-    path: tinyllama-chart
+    path: vllm-chart
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: default
-  syncPolicy: { automated: { prune: true, selfHeal: true } }
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

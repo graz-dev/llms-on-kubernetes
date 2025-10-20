@@ -2,9 +2,9 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "webui-chart.fullname" . }}
+  name: {{ include "vllm-chart.fullname" . }}
   labels:
-    {{- include "webui-chart.labels" . | nindent 4 }}
+    {{- include "vllm-chart.labels" . | nindent 4 }}
   {{- with .Values.ingress.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -35,7 +35,7 @@ spec:
             {{- end }}
             backend:
               service:
-                name: {{ include "webui-chart.fullname" $ }}
+                name: {{ include "vllm-chart.fullname" $ }}
                 port:
                   number: {{ $.Values.service.port }}
           {{- end }}

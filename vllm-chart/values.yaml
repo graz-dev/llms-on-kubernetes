@@ -1,0 +1,38 @@
+# values.yaml per vllm-chart
+image:
+  # L'immagine vLLM speciale che supporta Vulkan (krunkit)
+  repository: ghcr.io/krunkit/vllm-openai
+  tag: v0.4.1
+  pullPolicy: IfNotPresent
+
+# Argomenti per il server vLLM
+modelArgs:
+  - "--model"
+  - "mistralai/Mistral-7B-v0.1" # Il modello da Hugging Face
+  - "--host"
+  - "0.0.0.0"
+  - "--port"
+  - "8000"
+  - "--served-model-name"
+  - "mistral-7b"
+
+# Risorse K8s (12Gi per vLLM, 4Gi per Istio/Kube)
+resources:
+  limits:
+    squat.ai/dri: 1 # <-- Richiediamo la GPU!
+    memory: "12Gi" # <-- Limite aggiornato
+  requests:
+    squat.ai/dri: 1
+    memory: "12Gi" # <-- Limite aggiornato
+    cpu: "2000m"
+
+# Useremo un PVC per salvare in cache i 15GB del modello
+persistence:
+  enabled: true
+  storageClass: standard # Default di Minikube
+  size: 20Gi # Spazio sufficiente per Mistral 7B
+  mountPath: /root/.cache/huggingface # vLLM salva i modelli qui
+
+service:
+  type: ClusterIP
+  port: 8000 # vLLM gira sulla porta 8000

@@ -1,16 +1,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "tinyllama-chart.fullname" . }}
+  name: {{ include "vllm-chart.fullname" . }}
   labels:
-    {{- include "tinyllama-chart.labels" . | nindent 4 }}
+    {{- include "vllm-chart.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
-      {{- include "tinyllama-chart.selectorLabels" . | nindent 6 }}
+      {{- include "vllm-chart.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -18,7 +18,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "tinyllama-chart.labels" . | nindent 8 }}
+        {{- include "vllm-chart.labels" . | nindent 8 }}
         {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -27,7 +27,7 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "tinyllama-chart.serviceAccountName" . }}
+      serviceAccountName: {{ include "vllm-chart.serviceAccountName" . }}
       {{- with .Values.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}
@@ -38,11 +38,13 @@ spec:
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            {{- toYaml .Values.modelArgs | nindent 12 }}
           ports:
             - name: http
-              containerPort: {{ .Values.service.port }}
+              containerPort: 8000
               protocol: TCP
           {{- with .Values.livenessProbe }}
           livenessProbe:
@@ -54,20 +56,18 @@ spec:
           {{- end }}
           {{- with .Values.resources }}
           resources:
-            limits:
-              {{- toYaml .Values.resources.limits | nindent 12 }}
+            {{- toYaml .Values.resources | nindent 12 }}
           {{- end }}
           {{- with .Values.volumeMounts }}
           volumeMounts:
-          - name: models
-            mountPath: /mnt/models
+            - name: model-storage
+              mountPath: {{ .Values.persistence.mountPath }}
           {{- end }}
-          command: [ "llama-server" ]
-          args:
-          {{- toYaml .Values.modelArgs | nindent 12 }}
       {{- with .Values.volumes }}
       volumes:
-        {{- toYaml . | nindent 8 }}
+      - name: model-storage
+        persistentVolumeClaim:
+          claimName: {{ include "vllm-chart.fullname" . }}
       {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
@@ -81,7 +81,3 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      volumes:
-      - name: models
-      hostPath:
-          path: {{ .Values.hostModelPath }}

@@ -24,22 +24,12 @@ spec:
   gateways:
   - llm-gateway
   http:
-  # Route 1: Send API traffic to the llama-server
   - match:
     - uri:
         prefix: /v1
     route:
     - destination:
-        # Svc name is (argo-app-name)-(chart-name)
-        host: llama-app-tinyllama-chart.default.svc.cluster.local
+        # Il nome del servizio K8s: [NOME-APP-ARGO]-[NOME-CHART]
+        host: vllm-app-vllm-chart.default.svc.cluster.local
         port:
-          number: 8080
-  # Route 2: Send all other traffic to the Web UI
-  - match:
-    - uri:
-        prefix: /
-    route:
-    - destination:
-        host: webui-app-webui-chart.default.svc.cluster.local
-        port:
-          number: 8080
+          number: 8000 # La porta di vLLM

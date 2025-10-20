@@ -15,26 +15,60 @@ curl -fsSL https://github.com/minikube-machine/vmnet-helper/releases/latest/down
 # Cluster setup 
 
 ```bash
-minikube start --driver=krunkit 
-```
-
-Check the GPUs:
-
-```bash
-/dev/dri
-|-- by-path
-|   |-- platform-a007000.virtio_mmio-card -> ../card0
-|   `-- platform-a007000.virtio_mmio-render -> ../renderD128
-|-- card0
-`-- renderD128
-
-1 directories, 4 files
+minikube start --driver krunkit --memory=16g --cpus=4
 ```
 
 Then run install the generic-device-plugin to make the GPUs usable in pods:
 
 ```bash
-kubectl apply -f setup/generic-device-plugin.yaml
+cat <<'EOF' | kubectl apply -f -
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: generic-device-plugin
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io: generic-device-plugin
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io: generic-device-plugin
+    spec:
+      priorityClassName: system-node-critical
+      tolerations:
+      - operator: "Exists"
+      containers:
+      - image: squat/generic-device-plugin
+        args:
+        - --device
+        - |
+          name: dri
+          groups:
+          - count: 4
+            paths:
+            - path: /dev/dri
+        name: generic-device-plugin
+        resources:
+          limits:
+            cpu: 50m
+            memory: 20Mi
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: device-plugin
+          mountPath: /var/lib/kubelet/device-plugins
+        - name: dev
+          mountPath: /dev
+      volumes:
+      - name: device-plugin
+        hostPath:
+          path: /var/lib/kubelet/device-plugins
+      - name: dev
+        hostPath:
+          path: /dev
+EOF
 ```
 
 Now run:
@@ -54,10 +88,23 @@ With `"squat.ai/dri":"4"`
 Now configure istio:
 
 ```bash
-minikube addons enable istio-provisioner
 
-# This tells Istio to automatically add its proxy sidecar to any pod we deploy in the default namespace.
+curl -L https://istio.io/downloadIstioctl | sh -
 
+export PATH=$HOME/.istioctl/bin:$PATH
+
+istioctl version
+```
+
+Now run:
+
+```bash
+istioctl install --set profile=default -y
+``` 
+
+Then:
+
+```bash
 kubectl label namespace default istio-injection=enabled --overwrite
 ```
 
@@ -89,148 +136,102 @@ pod/argocd-server-5496498b9-kssvc condition met
 # Create the model chart 
 
 ```bash 
-helm create tinyllama-chart
+helm create vllm-chart
 ```
 
-Then configure the `tinyllama-chart/value.yaml`:
+Then configure the `vllm-chart/value.yaml`:
 
 ```yaml
-# values.yaml for tinyllama-chart
+# values.yaml per vllm-chart
 image:
-  repository: quay.io/ramalama/ramalama
-  tag: latest
+  # L'immagine vLLM speciale che supporta Vulkan (krunkit)
+  repository: ghcr.io/krunkit/vllm-openai
+  tag: v0.4.1
   pullPolicy: IfNotPresent
 
-# Arguments for the llama-server
+# Argomenti per il server vLLM
 modelArgs:
+  - "--model"
+  - "mistralai/Mistral-7B-v0.1" # Il modello da Hugging Face
   - "--host"
   - "0.0.0.0"
   - "--port"
-  - "8080"
-  - "--model"
-  - "/mnt/models/tinyllama-1.1b-chat-v1.0.Q8_0.gguf"
-  - "--alias"
-  - "tinyllama"
-  - "-ngl"
-  - "999" # Offload all layers to GPU
+  - "8000"
+  - "--served-model-name"
+  - "mistral-7b"
 
+# Risorse K8s (12Gi per vLLM, 4Gi per Istio/Kube)
 resources:
   limits:
-    squat.ai/dri: 1 # Request 1 GPU
+    squat.ai/dri: 1 # <-- Richiediamo la GPU!
+    memory: "12Gi" # <-- Limite aggiornato
+  requests:
+    squat.ai/dri: 1
+    memory: "12Gi" # <-- Limite aggiornato
+    cpu: "2000m"
 
-# This is the path inside the Minikube VM
-hostModelPath: /mnt/models
-
-service:
-  type: ClusterIP
-  port: 8080
-```
-
-Edit the `tinyllama-chart/templates/deployment.yaml` editing the `ìmage:` section with:
-
-```yaml:
-image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-imagePullPolicy: {{ .Values.image.pullPolicy }}
-```
-
-Add the `command` and `àrgs` to the `container`:
-
-```yaml
-command: [ "llama-server" ]
-args:
-  {{- toYaml .Values.modelArgs | nindent 12 }}
-```
-
-Replace the `resources` section with:
-
-```yaml
-resources:
-  limits:
-    {{- toYaml .Values.resources.limits | nindent 12 }}
-```
-
-Add the volume mounts:
-
-```yaml
-volumeMounts:
-- name: models
-  mountPath: /mnt/models
-```
-
-Add the volumes at the end of the spec:
-
-```yaml
-volumes:
-- name: models
-hostPath:
-    path: {{ .Values.hostModelPath }}
-```
-
-In `tinyllama-chart/templates/service.yaml` ensure the `port` is `{{ .Values.service.port }}` and `targetPort` is `8080`.
-
-# Create the webui chart
-
-```bash
-helm create webui-chart
-```
-
-Then configure the `webui-chart/value.yaml`:
-
-```yaml
-# values.yaml for webui-chart
-image:
-  repository: ghcr.io/open-webui/open-webui
-  tag: dev-slim
-  pullPolicy: IfNotPresent
-
-# This must match the K8s service name of our *other* chart
-# (release-name)-(chart-name)
-# Our Argo app will be 'llama-app', chart is 'tinyllama-chart'
-openaiApiBaseUrl: "http://llama-app-tinyllama-chart:8080/v1"
-
-service:
-  type: ClusterIP
-  port: 8080
-
+# Useremo un PVC per salvare in cache i 15GB del modello
 persistence:
   enabled: true
-  storageClass: standard
-  size: 1Gi
+  storageClass: standard # Default di Minikube
+  size: 20Gi # Spazio sufficiente per Mistral 7B
+  mountPath: /root/.cache/huggingface # vLLM salva i modelli qui
+
+service:
+  type: ClusterIP
+  port: 8000 # vLLM gira sulla porta 8000
 ```
 
-Edit the `webui-chart/templates/deployment.yaml` editing the `env:` section with:
+Edit the `vllm-chart/templates/deployment.yaml` deleting the `commands` section then add the section `args` under the `imagePullPolicy` with:
+
+```yaml:
+args:
+    {{- toYaml .Values.modelArgs | nindent 12 }}
+```
+
+Edit the section `ports` with:
 
 ```yaml
-env:
-- name: OPENAI_API_BASE_URLS
-  value: "{{ .Values.openaiApiBaseUrl }}"
+ports:
+    - name: http
+    containerPort: 8000
+    protocol: TCP
 ```
 
-Add the `volumeMounts`: 
+Change the section `resources` with:
+
+```yaml
+resources:
+    {{- toYaml .Values.resources | nindent 12 }}
+```
+
+Change the section `volumeMounts` with:
 
 ```yaml
 volumeMounts:
-- name: open-webui-data
-  mountPath: /app/backend/data
+    - name: model-storage
+      mountPath: {{ .Values.persistence.mountPath }}
 ```
 
-Add the `volumes` section at the end of the `spec`
+Change the section `volumes` with:
 
 ```yaml
 volumes:
-- name: open-webui-data
-persistentVolumeClaim:
-  claimName: {{ include "webui-chart.fullname" . }}
+- name: model-storage
+  persistentVolumeClaim:
+    claimName: {{ include "vllm-chart.fullname" . }}
 ```
 
-Create the `webui-chart/templates/pvc.yaml` with the following content:
+In `vllm-chart/templates/service.yaml` ensure the `port` is `port: {{ .Values.service.port }}` and `targetPort` is `http`
+
+Create the file `vllm-chart/templates/pvc.yaml` with the following content:
 
 ```yaml
 {{- if .Values.persistence.enabled }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ include "webui-chart.fullname" . }}
+  name: {{ include "vllm-chart.fullname" . }}
 spec:
   storageClassName: {{ .Values.persistence.storageClass }}
   accessModes:
@@ -243,47 +244,28 @@ spec:
 
 # Configure Argo and Istio
 
-Create the `app-llama.yaml` in the root of the repo with the following content
+Create the `app-vllm.yaml` in the root of the repo with the following content
 
 ```yaml
-# app-llama.yaml
+# app-vllm.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: llama-app # This is the release name!
+  name: vllm-app
   namespace: argocd
 spec:
   project: default
   source:
-    repoURL: 'https://github.com/YOUR-USERNAME/mlops-k8s-demo.git'
+    repoURL: 'https://github.com/TUO-USERNAME/vllm-k8s-demo.git' 
     targetRevision: HEAD
-    path: tinyllama-chart
+    path: vllm-chart
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: default
-  syncPolicy: { automated: { prune: true, selfHeal: true } }
-```
-
-Create the `app-webui.yaml` in the root of the repo with the following content:
-
-
-```yaml
-# app-webui.yaml
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: webui-app # This is the release name!
-  namespace: argocd
-spec:
-  project: default
-  source:
-    repoURL: 'https://github.com/YOUR-USERNAME/mlops-k8s-demo.git'
-    targetRevision: HEAD
-    path: webui-chart
-  destination:
-    server: 'https://kubernetes.default.svc'
-    namespace: default
-  syncPolicy: { automated: { prune: true, selfHeal: true } }
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
 ```
 
 Create the `app-gateway.yaml` Istio Router with the following content
@@ -315,25 +297,15 @@ spec:
   gateways:
   - llm-gateway
   http:
-  # Route 1: Send API traffic to the llama-server
   - match:
     - uri:
         prefix: /v1
     route:
     - destination:
-        # Svc name is (argo-app-name)-(chart-name)
-        host: llama-app-tinyllama-chart.default.svc.cluster.local
+        # Il nome del servizio K8s: [NOME-APP-ARGO]-[NOME-CHART]
+        host: vllm-app-vllm-chart.default.svc.cluster.local
         port:
-          number: 8080
-  # Route 2: Send all other traffic to the Web UI
-  - match:
-    - uri:
-        prefix: /
-    route:
-    - destination:
-        host: webui-app-webui-chart.default.svc.cluster.local
-        port:
-          number: 8080
+          number: 8000 # La porta di vLLM
 ```
 
 Push everything on github and apply the manifests:
