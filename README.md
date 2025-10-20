@@ -242,7 +242,7 @@ spec:
 {{- end }}
 ```
 
-Delete the `hpa.yaml`, `serviceaccount.yaml` and `ingress.yaml` from the template folder of your chart.
+Delete the `hpa.yaml`, `serviceaccount.yaml`, `ingress.yaml` and `http-route.yaml` from the template folder of your chart.
 
 # Configure Argo and Istio
 
