@@ -21,7 +21,7 @@ resources:
     memory: "12Gi" # Manteniamo la RAM alta
   requests:
     memory: "12Gi"
-    cpu: "3000m"   # Diamo tutte le CPU disponibili
+    cpu: "2000m"   # Diamo tutte le CPU disponibili
     # NESSUNA RICHIESTA GPU QUI
 
 persistence: # Manteniamo il PVC per la cache
