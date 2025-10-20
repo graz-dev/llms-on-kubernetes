@@ -241,6 +241,111 @@ spec:
 {{- end }}
 ```
 
+# Configure Argo and Istio
+
+Create the `app-llama.yaml` in the root of the repo with the following content
+
+```yaml
+# app-llama.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: llama-app # This is the release name!
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/YOUR-USERNAME/mlops-k8s-demo.git'
+    targetRevision: HEAD
+    path: tinyllama-chart
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: default
+  syncPolicy: { automated: { prune: true, selfHeal: true } }
+```
+
+Create the `app-webui.yaml` in the root of the repo with the following content:
+
+
+```yaml
+# app-webui.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: webui-app # This is the release name!
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/YOUR-USERNAME/mlops-k8s-demo.git'
+    targetRevision: HEAD
+    path: webui-chart
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: default
+  syncPolicy: { automated: { prune: true, selfHeal: true } }
+```
+
+Create the `app-gateway.yaml` Istio Router with the following content
+
+```yaml
+# app-gateway.yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: llm-gateway
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*"
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: llm-virtual-service
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - llm-gateway
+  http:
+  # Route 1: Send API traffic to the llama-server
+  - match:
+    - uri:
+        prefix: /v1
+    route:
+    - destination:
+        # Svc name is (argo-app-name)-(chart-name)
+        host: llama-app-tinyllama-chart.default.svc.cluster.local
+        port:
+          number: 8080
+  # Route 2: Send all other traffic to the Web UI
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        host: webui-app-webui-chart.default.svc.cluster.local
+        port:
+          number: 8080
+```
+
+Push everything on github and apply the manifests:
+
+```bash
+kubectl apply -f app-llama.yaml
+kubectl apply -f app-webui.yaml
+kubectl apply -f app-gateway.yaml
+```
+
+
+
 
 
 

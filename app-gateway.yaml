@@ -1,0 +1,45 @@
+# app-gateway.yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: llm-gateway
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*"
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: llm-virtual-service
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - llm-gateway
+  http:
+  # Route 1: Send API traffic to the llama-server
+  - match:
+    - uri:
+        prefix: /v1
+    route:
+    - destination:
+        # Svc name is (argo-app-name)-(chart-name)
+        host: llama-app-tinyllama-chart.default.svc.cluster.local
+        port:
+          number: 8080
+  # Route 2: Send all other traffic to the Web UI
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        host: webui-app-webui-chart.default.svc.cluster.local
+        port:
+          number: 8080
