@@ -222,6 +222,12 @@ volumes:
     claimName: {{ include "vllm-chart.fullname" . }}
 ```
 
+Change the `replicas` section with a static value:
+
+```yaml
+replicas: 1
+```
+
 In `vllm-chart/templates/service.yaml` ensure the `port` is `port: {{ .Values.service.port }}` and `targetPort` is `http`
 
 Create the file `vllm-chart/templates/pvc.yaml` with the following content:
