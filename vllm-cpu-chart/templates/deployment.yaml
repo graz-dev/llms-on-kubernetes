@@ -1,14 +1,14 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "vllm-chart.fullname" . }}
+  name: {{ include "vllm-cpu-chart.fullname" . }}
   labels:
-    {{- include "vllm-chart.labels" . | nindent 4 }}
+    {{- include "vllm-cpu-chart.labels" . | nindent 4 }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      {{- include "vllm-chart.selectorLabels" . | nindent 6 }}
+      {{- include "vllm-cpu-chart.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -16,15 +16,11 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "vllm-chart.labels" . | nindent 8 }}
+        {{- include "vllm-cpu-chart.labels" . | nindent 8 }}
         {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       serviceAccountName: default
       {{- with .Values.podSecurityContext }}
       securityContext:
@@ -60,7 +56,7 @@ spec:
       volumes:
       - name: model-storage
         persistentVolumeClaim:
-          claimName: {{ include "vllm-chart.fullname" . }}
+          claimName: {{ include "vllm-cpu-chart.fullname" . }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

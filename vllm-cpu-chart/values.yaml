@@ -1,0 +1,35 @@
+# vllm-cpu-chart/values.yaml
+image:
+  repository: vllm/vllm-openai # <-- Immagine UFFICIALE
+  tag: latest # O un tag specifico
+  pullPolicy: IfNotPresent
+
+modelArgs:
+  - "--model"
+  - "mistralai/Mistral-7B-v0.1"
+  - "--host"
+  - "0.0.0.0"
+  - "--port"
+  - "8000"
+  - "--served-model-name"
+  - "mistral-7b-cpu" # Nome diverso
+  - "--device"       # <-- SPECIFICA CPU
+  - "cpu"          # <-- SPECIFICA CPU
+
+resources:
+  limits:
+    memory: "12Gi" # Manteniamo la RAM alta
+  requests:
+    memory: "12Gi"
+    cpu: "4000m"   # Diamo tutte le CPU disponibili
+    # NESSUNA RICHIESTA GPU QUI
+
+persistence: # Manteniamo il PVC per la cache
+  enabled: true
+  storageClass: standard
+  size: 20Gi
+  mountPath: /root/.cache/huggingface
+
+service:
+  type: ClusterIP
+  port: 8000

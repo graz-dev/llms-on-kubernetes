@@ -4,32 +4,26 @@ kind: Gateway
 metadata:
   name: llm-gateway
 spec:
-  selector:
-    istio: ingressgateway
+  selector: { istio: ingressgateway }
   servers:
-  - port:
-      number: 80
-      name: http
-      protocol: HTTP
-    hosts:
-    - "*"
+  - port: { number: 80, name: http, protocol: HTTP }
+    hosts: ["*"]
 ---
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
 metadata:
   name: llm-virtual-service
 spec:
-  hosts:
-  - "*"
-  gateways:
-  - llm-gateway
+  hosts: ["*"]
+  gateways: [llm-gateway]
   http:
+  # Rotta 1: vLLM (CPU) su /vllm/v1
   - match:
-    - uri:
-        prefix: /v1
+    - uri: { prefix: /vllm/v1 }
+    rewrite:
+      uri: /v1 # Rimuove /vllm dal percorso inviato al pod
     route:
     - destination:
-        # Il nome del servizio K8s: [NOME-APP-ARGO]-[NOME-CHART]
-        host: vllm-app-vllm-chart.default.svc.cluster.local
-        port:
-          number: 8000 # La porta di vLLM
+        # Nome servizio: (nome-app-argo)-(nome-chart)
+        host: vllm-cpu-app-vllm-cpu-chart.default.svc.cluster.local
+        port: { number: 8000 } # Porta di vLLM

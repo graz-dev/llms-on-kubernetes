@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ include "vllm-chart.fullname" . }}
+  name: {{ include "vllm-cpu-chart.fullname" . }}
 spec:
   storageClassName: {{ .Values.persistence.storageClass }}
   accessModes:
