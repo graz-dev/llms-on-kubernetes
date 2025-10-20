@@ -323,9 +323,3 @@ kubectl apply -f app-llama.yaml
 kubectl apply -f app-webui.yaml
 kubectl apply -f app-gateway.yaml
 ```
-
-
-
-
-
-
