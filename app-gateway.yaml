@@ -1,3 +1,4 @@
+# app-gateway.yaml
 apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
 metadata:
@@ -21,4 +22,10 @@ spec:
     route:
     - destination:
         host: llama-app-tinyllama-gpu-chart.default.svc.cluster.local
+        port: { number: 8080 }
+  - match:
+    - uri: { prefix: / } 
+    route:
+    - destination:
+        host: webui-app-webui-chart.default.svc.cluster.local
         port: { number: 8080 }

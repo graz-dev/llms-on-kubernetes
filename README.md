@@ -147,75 +147,9 @@ pod/argocd-repo-server-584c99df7d-njf9x condition met
 pod/argocd-server-5496498b9-kssvc condition met
 ```
 
-# Configure Argo and Istio
-
-Create the `app-vllm.yaml` in the root of the repo with the following content
-
-```yaml
-# app-vllm.yaml
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: vllm-app
-  namespace: argocd
-spec:
-  project: default
-  source:
-    repoURL: 'https://github.com/TUO-USERNAME/vllm-k8s-demo.git' 
-    targetRevision: HEAD
-    path: vllm-chart
-  destination:
-    server: 'https://kubernetes.default.svc'
-    namespace: default
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-```
-
-Create the `app-gateway.yaml` Istio Router with the following content
-
-```yaml
-# app-gateway.yaml
-apiVersion: networking.istio.io/v1alpha3
-kind: Gateway
-metadata:
-  name: llm-gateway
-spec:
-  selector:
-    istio: ingressgateway
-  servers:
-  - port:
-      number: 80
-      name: http
-      protocol: HTTP
-    hosts:
-    - "*"
----
-apiVersion: networking.istio.io/v1alpha3
-kind: VirtualService
-metadata:
-  name: llm-virtual-service
-spec:
-  hosts:
-  - "*"
-  gateways:
-  - llm-gateway
-  http:
-  - match:
-    - uri:
-        prefix: /v1
-    route:
-    - destination:
-        # Il nome del servizio K8s: [NOME-APP-ARGO]-[NOME-CHART]
-        host: vllm-app-vllm-chart.default.svc.cluster.local
-        port:
-          number: 8000 # La porta di vLLM
-```
-
 Push everything on github and apply the manifests:
 
 ```bash
-kubectl apply -f app-vllm-cpu.yaml
+kubectl apply -f app-llama.yaml
 kubectl apply -f app-gateway.yaml
 ```

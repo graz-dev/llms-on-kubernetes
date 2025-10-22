@@ -1,0 +1,19 @@
+image:
+  repository: ghcr.io/open-webui/open-webui
+  tag: dev-slim
+  pullPolicy: IfNotPresent
+
+# !! IMPORTANTE !!
+# Questo deve puntare al nome del SERVIZIO K8s di TinyLlama
+# Il nome è: (nome-app-argo)-(nome-chart) -> llama-app-tinyllama-gpu-chart
+# Se hai usato nomi diversi per l'app Argo o la chart, aggiornalo qui.
+openaiApiBaseUrl: "http://llama-app-tinyllama-gpu-chart:8080/v1"
+
+service:
+  type: ClusterIP # Useremo Istio, non NodePort
+  port: 8080
+
+persistence:
+  enabled: true
+  storageClass: standard # Default di Minikube
+  size: 1Gi # Spazio per i dati di configurazione della UI

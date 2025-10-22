@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "webui-chart.fullname" . }}
+  labels:
+    {{- include "webui-chart.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "webui-chart.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "webui-chart.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: default # Usa default SA
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          env:
+            - name: OPENAI_API_BASE_URLS
+              value: "{{ .Values.openaiApiBaseUrl }}"
+          volumeMounts:
+            - name: open-webui-data
+              mountPath: /app/backend/data # Path interno richiesto dalla UI
+          # Puoi aggiungere resources requests/limits se vuoi
+          # resources:
+          #   requests:
+          #     cpu: 100m
+          #     memory: 256Mi
+      volumes:
+        - name: open-webui-data
+          persistentVolumeClaim:
+            claimName: {{ include "webui-chart.fullname" . }}
