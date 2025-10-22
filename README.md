@@ -149,7 +149,7 @@ kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/st
 
 ### 4. GitRepo Setup (Helm Charts & Argo Apps)
 
->[!INFO] 
+>[!NOTE] 
 > In this repo you can find both `tinyllama-gpu-chart` to deploy the model and `webui-chart` to interact with the model. Keep them in your repository or move them to another repository to decouple charts from the applications repo an reuse them for multiple applications. 
 
 You should configure:
@@ -226,10 +226,10 @@ This setup enables developers to easily deploy new model instances using a pre-d
 > [!NOTE]
 > This approach use a standardized helm chart available on a separate repo / helm registry. For each model we want to deploy we should create a different project repo (GitOps repo) to store the charts values (specific for the model we wants to deploy) and the ArgoCD `Application` manifest for the deployment.
 
-1. **Prepare the Model**
-   1. **Local `ramalama`: Download the required `.gguf` model file to the shared location accessible by Minikube (e.g., `~/models`).
-   2. **Cloud `vLLM`: Ensure the model exists on Hugging Face or another accessible model registry.
-2. **Define Project Configuration (`<project>-values.yaml`)
+1. **Prepare the Model**:
+   1. **Local `ramalama`**: Download the required `.gguf` model file to the shared location accessible by Minikube (e.g., `~/models`).
+   2. **Cloud `vLLM`**: Ensure the model exists on Hugging Face or another accessible model registry.
+2. **Define Project Configuration (`<project>-values.yaml`)**:
    1. In the **GitOps repository** (where Argo CD `Application` manifests reside), create a new YAML file specific to this deployment (e.g., `my-app/mistral-7b-values.yaml`).
    2. Inside this file, specify the values that differ from the generic chart's defaults, like:
       1. `image.repository` / `image.tag` (if using a different server version)
