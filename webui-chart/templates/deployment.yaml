@@ -14,7 +14,7 @@ spec:
       labels:
         {{- include "webui-chart.selectorLabels" . | nindent 8 }}
     spec:
-      serviceAccountName: default # Usa default SA
+      serviceAccountName: default
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -28,8 +28,8 @@ spec:
               value: "{{ .Values.openaiApiBaseUrl }}"
           volumeMounts:
             - name: open-webui-data
-              mountPath: /app/backend/data # Path interno richiesto dalla UI
-          # Puoi aggiungere resources requests/limits se vuoi
+              mountPath: /app/backend/data 
+          # Optional: Add CPU/Memory limits if needed
           # resources:
           #   requests:
           #     cpu: 100m

@@ -3,18 +3,17 @@ image:
   tag: latest
   pullPolicy: IfNotPresent
 
-# Arguments for the llama-server
 modelArgs:
   - "--host"
   - "0.0.0.0"
   - "--port"
   - "8080"
   - "--model"
-  - "/mnt/models/tinyllama-1.1b-chat-v1.0.Q8_0.gguf" # Path inside the container
+  - "/mnt/models/tinyllama-1.1b-chat-v1.0.Q8_0.gguf"
   - "--alias"
   - "tinyllama"
   - "-ngl"
-  - "999" # Offload all layers to GPU
+  - "999"
 
 resources:
   limits:
@@ -28,7 +27,6 @@ resources:
     # memory: "2Gi"
     # cpu: "1000m"
 
-# This is the path inside the Minikube VM (mounted from host)
 hostModelPath: /mnt/models
 
 service:
