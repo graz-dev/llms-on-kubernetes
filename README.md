@@ -218,6 +218,8 @@ To use a different model:
 
 ## Self-Service Workflow for Developers 
 
+<img width="1636" height="1398" alt="flow-2" src="https://github.com/user-attachments/assets/72fa5471-e6a2-4bb9-a044-1173d1b769d8" />
+
 What if we want to standardize this approach making it available to our developers in a self-service way using a standardized helm chart?
 This setup enables developers to easily deploy new model instances using a pre-defined, standardized Helm chart.
 
