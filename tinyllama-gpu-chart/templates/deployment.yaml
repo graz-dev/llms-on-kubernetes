@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "tinyllama-gpu-chart.fullname" . }}
+  labels:
+    {{- include "tinyllama-gpu-chart.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "tinyllama-gpu-chart.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "tinyllama-gpu-chart.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: default # Use default SA
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: [ "llama-server" ]
+          args:
+            {{- toYaml .Values.modelArgs | nindent 16 }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          resources:
+            limits:
+              {{- toYaml .Values.resources.limits | nindent 18 }}
+            requests:
+              {{- toYaml .Values.resources.requests | nindent 18 }}
+          volumeMounts:
+          - name: models
+            mountPath: /mnt/models # Mount point inside container
+      volumes:
+      - name: models
+        hostPath:
+          path: {{ .Values.hostModelPath }} # Path inside the Node VM

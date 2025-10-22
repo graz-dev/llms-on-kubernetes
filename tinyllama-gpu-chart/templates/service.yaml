@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "tinyllama-gpu-chart.fullname" . }}
+  labels:
+    {{- include "tinyllama-gpu-chart.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http # Matches the container port name
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "tinyllama-gpu-chart.selectorLabels" . | nindent 4 }}

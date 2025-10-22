@@ -1,4 +1,3 @@
-# app-gateway.yaml
 apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
 metadata:
@@ -17,13 +16,9 @@ spec:
   hosts: ["*"]
   gateways: [llm-gateway]
   http:
-  # Rotta 1: vLLM (CPU) su /vllm/v1
   - match:
-    - uri: { prefix: /vllm/v1 }
-    rewrite:
-      uri: /v1 # Rimuove /vllm dal percorso inviato al pod
+    - uri: { prefix: /v1 }
     route:
     - destination:
-        # Nome servizio: (nome-app-argo)-(nome-chart)
-        host: vllm-cpu-app-vllm-cpu-chart.default.svc.cluster.local
-        port: { number: 8000 } # Porta di vLLM
+        host: llama-app-tinyllama-gpu-chart.default.svc.cluster.local
+        port: { number: 8080 }

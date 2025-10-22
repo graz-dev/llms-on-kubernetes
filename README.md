@@ -12,10 +12,24 @@ curl -fsSL https://github.com/minikube-machine/vmnet-helper/releases/latest/down
 /opt/vmnet-helper/bin/vmnet-helper --version
 ```
 
+Download the model, in this case `TinyLLama 1.1B`:
+
+```bash
+cd models
+curl -LO 'https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q8_0.gguf?download=true'
+```
+
 # Cluster setup 
 
 ```bash
-minikube start --driver krunkit --memory=16g --cpus=4
+#delete previous cluster if needed
+
+minikube delete --all
+
+minikube start --driver krunkit \                                  
+  --memory=16g --cpus=4 \
+  --mount \
+  --mount-string="<path-to-the-models-folder>/:/mnt/models"
 ```
 
 Then run install the generic-device-plugin to make the GPUs usable in pods:
@@ -133,123 +147,6 @@ pod/argocd-repo-server-584c99df7d-njf9x condition met
 pod/argocd-server-5496498b9-kssvc condition met
 ```
 
-# Create the model chart 
-
-```bash 
-helm create vllm-chart
-```
-
-Then configure the `vllm-chart/value.yaml`:
-
-```yaml
-# values.yaml per vllm-chart
-image:
-  # L'immagine vLLM speciale che supporta Vulkan (krunkit)
-  repository: ghcr.io/krunkit/vllm-openai
-  tag: v0.4.1
-  pullPolicy: IfNotPresent
-
-# Argomenti per il server vLLM
-modelArgs:
-  - "--model"
-  - "mistralai/Mistral-7B-v0.1" # Il modello da Hugging Face
-  - "--host"
-  - "0.0.0.0"
-  - "--port"
-  - "8000"
-  - "--served-model-name"
-  - "mistral-7b"
-
-# Risorse K8s (12Gi per vLLM, 4Gi per Istio/Kube)
-resources:
-  limits:
-    squat.ai/dri: 1 # <-- Richiediamo la GPU!
-    memory: "12Gi" # <-- Limite aggiornato
-  requests:
-    squat.ai/dri: 1
-    memory: "12Gi" # <-- Limite aggiornato
-    cpu: "2000m"
-
-# Useremo un PVC per salvare in cache i 15GB del modello
-persistence:
-  enabled: true
-  storageClass: standard # Default di Minikube
-  size: 20Gi # Spazio sufficiente per Mistral 7B
-  mountPath: /root/.cache/huggingface # vLLM salva i modelli qui
-
-service:
-  type: ClusterIP
-  port: 8000 # vLLM gira sulla porta 8000
-```
-
-Edit the `vllm-chart/templates/deployment.yaml` deleting the `commands` section then add the section `args` under the `imagePullPolicy` with:
-
-```yaml:
-args:
-    {{- toYaml .Values.modelArgs | nindent 12 }}
-```
-
-Edit the section `ports` with:
-
-```yaml
-ports:
-    - name: http
-    containerPort: 8000
-    protocol: TCP
-```
-
-Change the section `resources` with:
-
-```yaml
-resources:
-    {{- toYaml .Values.resources | nindent 12 }}
-```
-
-Change the section `volumeMounts` with:
-
-```yaml
-volumeMounts:
-    - name: model-storage
-      mountPath: {{ .Values.persistence.mountPath }}
-```
-
-Change the section `volumes` with:
-
-```yaml
-volumes:
-- name: model-storage
-  persistentVolumeClaim:
-    claimName: {{ include "vllm-chart.fullname" . }}
-```
-
-Change the `replicas` section with a static value:
-
-```yaml
-replicas: 1
-```
-
-In `vllm-chart/templates/service.yaml` ensure the `port` is `port: {{ .Values.service.port }}` and `targetPort` is `http`
-
-Create the file `vllm-chart/templates/pvc.yaml` with the following content:
-
-```yaml
-{{- if .Values.persistence.enabled }}
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: {{ include "vllm-chart.fullname" . }}
-spec:
-  storageClassName: {{ .Values.persistence.storageClass }}
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: {{ .Values.persistence.size }}
-{{- end }}
-```
-
-Delete the `hpa.yaml`, `serviceaccount.yaml`, `ingress.yaml`, `http-route.yaml` and `_tests` from the template folder of your chart.
-
 # Configure Argo and Istio
 
 Create the `app-vllm.yaml` in the root of the repo with the following content
@@ -319,7 +216,6 @@ spec:
 Push everything on github and apply the manifests:
 
 ```bash
-kubectl apply -f app-llama.yaml
-kubectl apply -f app-webui.yaml
+kubectl apply -f app-vllm-cpu.yaml
 kubectl apply -f app-gateway.yaml
 ```

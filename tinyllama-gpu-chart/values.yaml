@@ -1,0 +1,36 @@
+image:
+  repository: quay.io/ramalama/ramalama
+  tag: latest
+  pullPolicy: IfNotPresent
+
+# Arguments for the llama-server
+modelArgs:
+  - "--host"
+  - "0.0.0.0"
+  - "--port"
+  - "8080"
+  - "--model"
+  - "/mnt/models/tinyllama-1.1b-chat-v1.0.Q8_0.gguf" # Path inside the container
+  - "--alias"
+  - "tinyllama"
+  - "-ngl"
+  - "999" # Offload all layers to GPU
+
+resources:
+  limits:
+    squat.ai/dri: 1 # Request 1 GPU
+    # Optional: Add CPU/Memory limits if needed
+    # memory: "4Gi"
+    # cpu: "2000m"
+  requests:
+    squat.ai/dri: 1
+    # Optional: Add CPU/Memory requests if needed
+    # memory: "2Gi"
+    # cpu: "1000m"
+
+# This is the path inside the Minikube VM (mounted from host)
+hostModelPath: /mnt/models
+
+service:
+  type: ClusterIP
+  port: 8080
