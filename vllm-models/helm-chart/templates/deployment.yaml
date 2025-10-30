@@ -1,0 +1,79 @@
+{{- range .Values.models }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-{{ .modelName }}
+  labels:
+    app: vllm-{{ .modelName }}
+spec:
+  replicas: {{ .replicas }}
+  selector:
+    matchLabels:
+      app: vllm-{{ .modelName }}
+  template:
+    metadata:
+      labels:
+        app: vllm-{{ .modelName }}
+    spec:
+      containers:
+      - name: vllm
+        image: {{ $.Values.image.repository }}:{{ $.Values.image.tag }}
+        imagePullPolicy: {{ $.Values.image.pullPolicy }}
+        ports:
+        - containerPort: 8080
+          name: http
+        args:
+        - --model
+        - {{ .huggingfaceId }}
+        - --served-model-name
+        - {{ .modelName }}
+        - --host
+        - "0.0.0.0"
+        - --port
+        - "8080"
+        - --gpu-memory-utilization
+        - "0.90"
+        - --tensor-parallel-size
+        - "{{ .gpuRequestCount }}"
+        - --trust-remote-code
+        resources:
+          requests:
+            nvidia.com/gpu: {{ .gpuRequestCount }}
+          limits:
+            nvidia.com/gpu: {{ .gpuRequestCount }}
+        volumeMounts:
+        - name: model-cache
+          mountPath: /root/.cache/huggingface
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        env:
+        - name: HUGGING_FACE_HUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: huggingface-token
+              key: token
+              optional: true
+      volumes:
+      - name: model-cache
+        persistentVolumeClaim:
+          claimName: vllm-{{ .modelName }}-pvc
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+{{- end }}

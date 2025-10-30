@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vllm-models
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/your-org/llms-on-kubernetes
+    targetRevision: HEAD
+    path: vllm-models/helm-chart
+    helm:
+      values: |
+        models:
+          - huggingfaceId: "microsoft/DialoGPT-medium"
+            modelName: "dialogpt-medium"
+            gpuRequestCount: 1
+            replicas: 1
+            pvcSize: "10Gi"
+          - huggingfaceId: "meta-llama/Llama-2-7b-chat-hf"
+            modelName: "llama2-7b-chat"
+            gpuRequestCount: 1
+            replicas: 1
+            pvcSize: "20Gi"
+        image:
+          repository: vllm/vllm-openai
+          tag: "v0.11.0"
+          pullPolicy: IfNotPresent
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vllm-models
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
