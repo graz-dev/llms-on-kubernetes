@@ -47,3 +47,11 @@ spec:
         host: vllm-api-gateway
         port:
           number: 8080
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        host: vllm-webui
+        port:
+          number: 8080

@@ -60,8 +60,12 @@ curl -X POST http://your-cluster/v1/completions \
 ```
 
 **Available Endpoints:**
+- `GET /` - OpenWebUI interface for interacting with models
 - `GET /v1/models` - Lists all configured models (OpenAI compatible)
 - `POST /v1/completions` - Text completions with automatic model routing
 - `POST /v1/chat/completions` - Chat completions with automatic model routing
 
-If no model is specified or model is not found, it defaults to the first model in the list.
+### Web Interface
+Access the OpenWebUI at your cluster's ingress root path `/`. The WebUI is pre-configured to use the API gateway, so all models will be automatically available for selection.
+
+If no model is specified in API calls, it defaults to the first model in the list.
