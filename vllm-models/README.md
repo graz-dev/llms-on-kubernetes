@@ -132,10 +132,48 @@ Here you have two options:
 
 1. **Install using the `vllm-models/application.yaml` targeting this repository.**
 
-You need to update the `repoURL` in the application.yaml file with your repository URL, then apply it:
+You just need to run the following command, making sure to edit the model  `values` to match the models you want to deploy:
 
 ```bash
-kubectl apply -f vllm-models/application.yaml
+cat <<'EOF' | kubectl apply -f -
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vllm-models
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/graz-dev/llms-on-kubernetes
+    targetRevision: HEAD
+    path: vllm-models/helm-chart
+    helm:
+      values: |
+        models:
+          - huggingfaceId: "microsoft/DialoGPT-medium"
+            modelName: "dialogpt-medium"
+            gpuRequestCount: 1
+            replicas: 1
+            pvcSize: "10Gi"
+          - huggingfaceId: "meta-llama/Llama-2-7b-chat-hf"
+            modelName: "llama2-7b-chat"
+            gpuRequestCount: 1
+            replicas: 1
+            pvcSize: "20Gi"
+        image:
+          repository: vllm/vllm-openai
+          tag: "v0.11.0"
+          pullPolicy: IfNotPresent
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vllm-models
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+EOF
 ```
 
 This way your Argo application will be automatically synced with the git repository as the origin.
