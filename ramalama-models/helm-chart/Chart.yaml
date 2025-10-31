@@ -1,0 +1,6 @@
+apiVersion: v2
+name: ramalama-models
+description: A generic Helm chart to deploy Ramalama LLM server with Open WebUI
+type: application
+version: 0.1.0
+appVersion: "latest"

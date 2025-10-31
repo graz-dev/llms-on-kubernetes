@@ -1,0 +1,179 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ramalama-models.fullname" . }}-api-gateway-config
+  labels:
+    {{- include "ramalama-models.labels" . | nindent 4 }}
+data:
+  gateway.py: |
+    #!/usr/bin/env python3
+    import os
+    import json
+    import http.server
+    import socketserver
+    import urllib.request
+    import urllib.error
+    from urllib.parse import urlparse
+    
+    PORT = int(os.environ.get('PORT', '8080'))
+    
+    # Model to backend mapping
+    BACKENDS = {
+{{- range .Values.models }}
+        "{{ .modelName }}": "http://ramalama-{{ .modelName }}.{{ $.Release.Namespace }}.svc.cluster.local:8080",
+{{- end }}
+    }
+    DEFAULT_BACKEND = "http://ramalama-{{ (index .Values.models 0).modelName }}.{{ $.Release.Namespace }}.svc.cluster.local:8080"
+    
+    class GatewayHandler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            if self.path == '/v1/models':
+                self.send_models_list()
+            elif self.path == '/health':
+                self.send_response(200)
+                self.send_header('Content-type', 'text/plain')
+                self.end_headers()
+                self.wfile.write(b'OK')
+            else:
+                self.proxy_request()
+        
+        def do_POST(self):
+            self.proxy_request()
+        
+        def send_models_list(self):
+            models = {
+                "object": "list",
+                "data": [
+{{- range .Values.models }}
+                    {
+                        "id": "{{ .modelName }}",
+                        "object": "model",
+                        "created": 0,
+                        "owned_by": "ramalama"
+                    },
+{{- end }}
+                ]
+            }
+            
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(models).encode())
+        
+        def proxy_request(self):
+            # Read request body
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length) if content_length > 0 else b''
+            
+            # Determine backend
+            backend = DEFAULT_BACKEND
+            if body:
+                try:
+                    data = json.loads(body.decode())
+                    model_name = data.get('model', '')
+                    if model_name in BACKENDS:
+                        backend = BACKENDS[model_name]
+                except:
+                    pass
+            
+            # Build target URL
+            target_url = backend.rstrip('/') + self.path
+            
+            # Create request
+            req = urllib.request.Request(target_url, data=body if body else None)
+            
+            # Copy headers (except host)
+            for header, value in self.headers.items():
+                if header.lower() not in ['host', 'connection']:
+                    req.add_header(header, value)
+            
+            try:
+                # Make request
+                with urllib.request.urlopen(req, timeout=300) as response:
+                    self.send_response(response.status)
+                    # Copy response headers
+                    for header, value in response.headers.items():
+                        if header.lower() not in ['connection', 'transfer-encoding']:
+                            self.send_header(header, value)
+                    self.end_headers()
+                    self.wfile.write(response.read())
+            except Exception as e:
+                self.send_response(502)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
+        
+        def log_message(self, format, *args):
+            # Suppress default logging
+            pass
+    
+    with socketserver.TCPServer(("", PORT), GatewayHandler) as httpd:
+        httpd.serve_forever()
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ramalama-models.fullname" . }}-api-gateway
+  labels:
+    {{- include "ramalama-models.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api-gateway
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      {{- include "ramalama-models.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: api-gateway
+  template:
+    metadata:
+      labels:
+        {{- include "ramalama-models.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: api-gateway
+    spec:
+      containers:
+      - name: gateway
+        image: python:3.11-slim
+        command: ["python3", "/app/gateway.py"]
+        ports:
+        - containerPort: 8080
+        env:
+        - name: PORT
+          value: "8080"
+        volumeMounts:
+        - name: gateway-config
+          mountPath: /app/gateway.py
+          subPath: gateway.py
+          readOnly: true
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+      volumes:
+      - name: gateway-config
+        configMap:
+          name: {{ include "ramalama-models.fullname" . }}-api-gateway-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ramalama-models.fullname" . }}-api-gateway
+  labels:
+    {{- include "ramalama-models.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api-gateway
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    {{- include "ramalama-models.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: api-gateway

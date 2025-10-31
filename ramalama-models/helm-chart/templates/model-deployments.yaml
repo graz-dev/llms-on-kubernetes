@@ -1,0 +1,45 @@
+{{- range .Values.models }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ramalama-{{ .modelName }}
+  labels:
+    app: ramalama-{{ .modelName }}
+spec:
+  replicas: {{ .replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: ramalama-{{ .modelName }}
+  template:
+    metadata:
+      labels:
+        app: ramalama-{{ .modelName }}
+    spec:
+      containers:
+      - name: ramalama
+        image: {{ $.Values.image.repository }}:{{ $.Values.image.tag }}
+        imagePullPolicy: {{ $.Values.image.pullPolicy }}
+        ports:
+        - containerPort: 8080
+          name: http
+        command: [ "llama-server" ]
+        args:
+        - --host
+        - "0.0.0.0"
+        - --port
+        - "8080"
+        - --model
+        - {{ .modelPath }}
+        - --alias
+        - {{ .modelName }}
+        resources:
+{{ toYaml .resources | indent 10 }}
+        volumeMounts:
+        - name: model-volume
+          mountPath: /mnt/models
+      volumes:
+      - name: model-volume
+        hostPath:
+          path: {{ $.Values.hostModelPath }}
+{{- end }}

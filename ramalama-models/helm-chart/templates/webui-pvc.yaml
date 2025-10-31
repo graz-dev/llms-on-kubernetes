@@ -1,0 +1,17 @@
+{{- if .Values.webui.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "ramalama-models.webui.fullname" . }}
+  labels:
+    {{- include "ramalama-models.webui.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/resource-policy": keep
+spec:
+  storageClassName: {{ .Values.webui.persistence.storageClass }}
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.webui.persistence.size }}
+{{- end }}

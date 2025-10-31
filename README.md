@@ -52,6 +52,8 @@ cd models
 
 # Download the model from HuggingFace, in this case TinyLlama 1.1B
 curl -LO 'https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q8_0.gguf?download=true'
+
+curl -LO 'https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/resolve/main/Phi-3-mini-4k-instruct-q4.gguf?download=true'
 ```
 
 ### 3. Cluster Setup

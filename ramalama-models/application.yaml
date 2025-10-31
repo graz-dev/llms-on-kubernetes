@@ -1,0 +1,39 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ramalama-models
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/graz-dev/llms-on-kubernetes.git'
+    targetRevision: vllm-multi-model-deployment
+    path: ramalama-models/helm-chart
+    helm:
+      values: |
+        models:
+          - modelPath: "/mnt/models/tinyllama-1.1b-chat-v1.0.Q8_0.gguf"
+            modelName: "tinyllama"
+            replicas: 1
+            resources:
+              requests:
+                squat.ai/dri: 1
+              limits:
+                squat.ai/dri: 1
+          - modelPath: "/mnt/models/Phi-3-mini-4k-instruct-q4.gguf"
+            modelName: "phi-3-mini"
+            replicas: 1
+            resources:
+              requests:
+                squat.ai/dri: 1
+              limits:
+                squat.ai/dri: 1
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

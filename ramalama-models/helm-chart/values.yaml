@@ -1,0 +1,39 @@
+fullnameOverride: ramalama-models
+
+models:
+  - modelPath: "/mnt/models/tinyllama-1.1b-chat-v1.0.Q8_0.gguf"
+    modelName: "tinyllama"
+    replicas: 1
+    resources:
+      requests:
+        squat.ai/dri: 1
+      limits:
+        squat.ai/dri: 1
+  - modelPath: "/mnt/models/Phi-3-mini-4k-instruct-q4.gguf"
+    modelName: "phi-3-mini"
+    replicas: 1
+    resources:
+      requests:
+        squat.ai/dri: 1
+      limits:
+        squat.ai/dri: 1
+
+image:
+  repository: quay.io/ramalama/ramalama
+  tag: latest
+  pullPolicy: IfNotPresent
+
+hostModelPath: /mnt/models
+
+webui:
+  service:
+    type: ClusterIP
+    port: 8080
+  persistence:
+    enabled: true
+    storageClass: standard
+    size: 1Gi
+
+# DNS resolver IP for API gateway (default kube-dns, override if different)
+# Find with: kubectl get svc -n kube-system | grep -E 'dns|coredns'
+dnsResolver: "10.96.0.10"
