@@ -6,8 +6,8 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'https://github.com/graz-dev/llms-on-kubernetes.git'
-    targetRevision: vllm-multi-model-deployment
+    repoURL: 'https://github.com/your-org/llms-on-kubernetes.git' # <--- change here with your own repository
+    targetRevision: HEAD
     path: ramalama-models/helm-chart
     helm:
       values: |
