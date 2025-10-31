@@ -18,6 +18,12 @@ The entire system is designed to be self-contained and maintainable. Helm charts
 
 This repository contains two complete solutions for deploying LLMs, each optimized for different use cases and model formats.
 
+### Ramalama Models
+
+The **Ramalama** solution is optimized for local-first deployments using GGUF quantized models. It uses a shared host path for model storage, eliminating the need for persistent volumes per model. This makes it perfect for edge deployments, development environments, or scenarios where you want to pre-load models on your nodes.
+
+For detailed information about configuring and deploying Ramalama models, see the [Ramalama Models README](ramalama-models/README.md).
+
 ### vLLM Models
 
 The **vLLM** solution is designed for cloud deployments using HuggingFace models. It automatically downloads models from HuggingFace Hub when pods start, caches them in persistent volumes, and serves them using the vLLM inference engine. This solution is ideal for production deployments where you need automatic model management and want to leverage the full performance of PyTorch-based models.
@@ -25,10 +31,3 @@ The **vLLM** solution is designed for cloud deployments using HuggingFace models
 The vLLM solution uses NGNIX as an API gateway for routing requests between multiple models. Each model gets its own persistent volume for caching, ensuring fast startup times after the initial download. 
 
 For detailed information about configuring and deploying vLLM models, see the [vLLM Models README](vllm-models/README.md).
-
-### Ramalama Models
-
-The **Ramalama** solution is optimized for local-first deployments using GGUF quantized models. It uses a shared host path for model storage, eliminating the need for persistent volumes per model. This makes it perfect for edge deployments, development environments, or scenarios where you want to pre-load models on your nodes.
-
-For detailed information about configuring and deploying Ramalama models, see the [Ramalama Models README](ramalama-models/README.md).
-
