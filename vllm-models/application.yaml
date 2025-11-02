@@ -26,6 +26,8 @@ spec:
           repository: vllm/vllm-openai
           tag: "v0.11.0"
           pullPolicy: IfNotPresent
+        storage:
+          className: "gp2"
   destination:
     server: https://kubernetes.default.svc
     namespace: vllm-models

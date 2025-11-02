@@ -14,3 +14,6 @@ image:
   repository: vllm/vllm-openai
   tag: "v0.11.0"
   pullPolicy: IfNotPresent
+
+storage:
+  className: "gp2"
