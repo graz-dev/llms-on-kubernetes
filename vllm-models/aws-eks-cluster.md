@@ -175,6 +175,29 @@ kubectl get pods -n argocd
 kubectl get svc -n istio-system istio-ingressgateway
 ```
 
+### Get Your Cluster URL
+
+Once everything is deployed, get your cluster's external URL:
+
+```bash
+# Get the external URL for your cluster
+kubectl get svc -n istio-system istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+```
+
+Your cluster will be accessible at:
+- **Web UI**: `http://[EXTERNAL-IP]/`
+- **API Models**: `http://[EXTERNAL-IP]/v1/models`  
+- **API Completions**: `http://[EXTERNAL-IP]/v1/completions`
+
+**Example:**
+```bash
+# Test connectivity (replace with your actual URL)
+curl http://a46a6935261964d59847de8ad6d40ac8-641434652.eu-north-1.elb.amazonaws.com/health
+
+# List available models
+curl http://a46a6935261964d59847de8ad6d40ac8-641434652.eu-north-1.elb.amazonaws.com/v1/models
+```
+
 ## 7. Configure Storage Classes (Optional)
 
 For better performance, you might want to configure gp3 storage:

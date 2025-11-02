@@ -78,6 +78,8 @@ This solution assumes you have:
 - Network access to HuggingFace Hub for model downloads
 - Sufficient storage capacity for model caches (each model requires a PVC)
 
+> **💡 Quick AWS Setup**: If you need to create an AWS EKS cluster with GPU support, see our [AWS EKS Cluster Setup Guide](aws-eks-cluster.md) for step-by-step instructions to get a ready-to-use cluster in eu-north-1.
+
 ## Running Steps
 
 ### 1. Prerequisites Installation

@@ -94,7 +94,7 @@ metadata:
   labels:
     app: vllm-api-gateway
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: vllm-api-gateway
