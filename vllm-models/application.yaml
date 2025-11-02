@@ -12,16 +12,16 @@ spec:
     helm:
       values: |
         models:
-          - huggingfaceId: "microsoft/DialoGPT-medium"
-            modelName: "dialogpt-medium"
-            gpuRequestCount: 1
+          - huggingfaceId: "leon-se/gemma-3-27b-it-FP8-Dynamic"
+            modelName: "gemma-3-27b-it"
+            gpuRequestCount: 2
             replicas: 1
-            pvcSize: "10Gi"
-          - huggingfaceId: "meta-llama/Llama-2-7b-chat-hf"
-            modelName: "llama2-7b-chat"
-            gpuRequestCount: 1
+            pvcSize: "40Gi"
+          - huggingfaceId: "cpatonn/Qwen3-VL-30B-A3B-Instruct-AWQ-8bit"
+            modelName: "qwen3-vl-30b"
+            gpuRequestCount: 2
             replicas: 1
-            pvcSize: "20Gi"
+            pvcSize: "45Gi"
         image:
           repository: vllm/vllm-openai
           tag: "v0.11.0"

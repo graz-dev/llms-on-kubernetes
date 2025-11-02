@@ -1,14 +1,22 @@
 models:
-  - huggingfaceId: "microsoft/DialoGPT-medium"
-    modelName: "dialogpt-medium"
-    gpuRequestCount: 1
+  # Production models for high-end GPU clusters (g6e.12xlarge with 4x L40S GPUs)
+  - huggingfaceId: "leon-se/gemma-3-27b-it-FP8-Dynamic"
+    modelName: "gemma-3-27b-it"
+    gpuRequestCount: 2
     replicas: 1
-    pvcSize: "10Gi"
-  - huggingfaceId: "google/flan-t5-large"
-    modelName: "flan-t5-large"
-    gpuRequestCount: 1
+    pvcSize: "40Gi"
+  - huggingfaceId: "cpatonn/Qwen3-VL-30B-A3B-Instruct-AWQ-8bit"
+    modelName: "qwen3-vl-30b"
+    gpuRequestCount: 2
     replicas: 1
-    pvcSize: "15Gi"
+    pvcSize: "45Gi"
+
+  # For low VRAM test environments, consider using:
+  # - huggingfaceId: "Qwen/Qwen3-0.6B-FP8"
+  #   modelName: "qwen3-0.6b"  
+  #   gpuRequestCount: 1
+  #   replicas: 1
+  #   pvcSize: "5Gi"
 
 image:
   repository: vllm/vllm-openai
