@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/your-org/llms-on-kubernetes # <--- change here with your own repository
+    repoURL: https://github.com/graz-dev/llms-on-kubernetes
     targetRevision: HEAD
     path: vllm-models/helm-chart
     helm:

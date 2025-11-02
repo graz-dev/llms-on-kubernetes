@@ -27,6 +27,8 @@ data:
         server {
             listen 8080;
             
+            set $model_name "";
+            
             location = /v1/models {
                 content_by_lua_block {
                     local cjson = require "cjson"

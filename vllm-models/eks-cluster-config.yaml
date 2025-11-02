@@ -1,0 +1,59 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: vllm-demo-cluster
+  region: eu-north-1
+  version: "1.33"
+
+nodeGroups:
+  # CPU nodes for system workloads
+  - name: system-nodes
+    instanceType: m5.large
+    desiredCapacity: 2
+    minSize: 1
+    maxSize: 4
+    volumeSize: 20
+    ssh:
+      allow: false
+    iam:
+      withAddonPolicies:
+        autoScaler: true
+        cloudWatch: true
+        ebs: true
+        efs: true
+        fsx: true
+
+  # GPU nodes for model inference
+  - name: gpu-nodes
+    instanceType: g6e.12xlarge
+    desiredCapacity: 1
+    minSize: 0
+    maxSize: 3
+    volumeSize: 100
+    ssh:
+      allow: false
+    labels:
+      node-type: gpu
+      workload: inference
+    taints:
+      - key: nvidia.com/gpu
+        value: "true"
+        effect: NoSchedule
+    iam:
+      withAddonPolicies:
+        autoScaler: true
+        cloudWatch: true
+        ebs: true
+        efs: true
+        fsx: true
+
+addons:
+  - name: vpc-cni
+  - name: coredns
+  - name: kube-proxy
+  - name: aws-ebs-csi-driver
+
+cloudWatch:
+  clusterLogging:
+    enableTypes: ["api", "audit", "authenticator", "controllerManager", "scheduler"]
