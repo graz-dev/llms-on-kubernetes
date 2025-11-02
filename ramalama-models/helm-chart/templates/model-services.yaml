@@ -1,0 +1,18 @@
+{{- range .Values.models }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ramalama-{{ .modelName }}
+  labels:
+    app: ramalama-{{ .modelName }}
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: ramalama-{{ .modelName }}
+{{- end }}

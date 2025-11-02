@@ -1,0 +1,15 @@
+{{- range .Values.models }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vllm-{{ .modelName }}-pvc
+  labels:
+    app: vllm-{{ .modelName }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .pvcSize }}
+{{- end }}

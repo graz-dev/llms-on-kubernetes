@@ -1,0 +1,16 @@
+models:
+  - huggingfaceId: "microsoft/DialoGPT-medium"
+    modelName: "dialogpt-medium"
+    gpuRequestCount: 1
+    replicas: 1
+    pvcSize: "10Gi"
+  - huggingfaceId: "google/flan-t5-large"
+    modelName: "flan-t5-large"
+    gpuRequestCount: 1
+    replicas: 1
+    pvcSize: "15Gi"
+
+image:
+  repository: vllm/vllm-openai
+  tag: "v0.11.0"
+  pullPolicy: IfNotPresent

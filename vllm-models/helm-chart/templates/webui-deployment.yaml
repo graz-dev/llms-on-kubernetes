@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-webui
+  labels:
+    app: vllm-webui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vllm-webui
+  template:
+    metadata:
+      labels:
+        app: vllm-webui
+    spec:
+      containers:
+      - name: webui
+        image: ghcr.io/open-webui/open-webui:dev-slim
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        env:
+        - name: OPENAI_API_BASE_URLS
+          value: "http://vllm-api-gateway:8080/v1"
+        - name: WEBUI_NAME
+          value: "VLLM Multi-Model WebUI"
+        volumeMounts:
+        - name: webui-data
+          mountPath: /app/backend/data
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      volumes:
+      - name: webui-data
+        persistentVolumeClaim:
+          claimName: vllm-webui-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm-webui
+  labels:
+    app: vllm-webui
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: vllm-webui
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vllm-webui-pvc
+  labels:
+    app: vllm-webui
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

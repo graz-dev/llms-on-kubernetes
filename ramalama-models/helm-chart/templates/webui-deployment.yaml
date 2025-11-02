@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ramalama-models.webui.fullname" . }}
+  labels:
+    {{- include "ramalama-models.webui.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "ramalama-models.webui.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "ramalama-models.webui.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: default
+      containers:
+        - name: webui
+          image: "ghcr.io/open-webui/open-webui:dev-slim"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: OPENAI_API_BASE_URLS
+              value: "http://{{ include "ramalama-models.fullname" . }}-api-gateway:8080/v1"
+          volumeMounts:
+            - name: open-webui-data
+              mountPath: /app/backend/data
+      volumes:
+        - name: open-webui-data
+          persistentVolumeClaim:
+            claimName: {{ include "ramalama-models.webui.fullname" . }}

@@ -1,6 +1,0 @@
-apiVersion: v2
-name: tinyllama-gpu-chart
-description: A Helm chart for deploying TinyLlama with ramalama on K8s (GPU)
-type: application
-version: 0.1.0
-appVersion: "latest"
