@@ -11,23 +11,20 @@ data:
     http {
         lua_package_path "/usr/local/openresty/lualib/?.lua;;";
         
-        upstream default_backend {
 {{- range .Values.models }}
+        upstream vllm-{{ .modelName }} {
             server vllm-{{ .modelName }}:8080;
-{{- end }}
         }
-
-        map $model_name $backend_service {
-{{- range .Values.models }}
-            "{{ .modelName }}" "vllm-{{ .modelName }}:8080";
 {{- end }}
-            default "{{ (index .Values.models 0).modelName | printf "vllm-%s:8080" }}";
+        
+        upstream default_backend {
+            server vllm-{{ (index .Values.models 0).modelName }}:8080;
         }
         
         server {
             listen 8080;
             
-            set $model_name "";
+            set $upstream "default_backend";
             
             location = /v1/models {
                 content_by_lua_block {
@@ -55,6 +52,7 @@ data:
                 access_by_lua_block {
                     local cjson = require "cjson"
                     local model_name = ""
+                    local upstream_name = "default_backend"
                     
                     -- Read request body
                     ngx.req.read_body()
@@ -64,13 +62,19 @@ data:
                         local success, json_data = pcall(cjson.decode, body)
                         if success and json_data and json_data.model then
                             model_name = json_data.model
+                            -- Map model name to upstream
+{{- range .Values.models }}
+                            if model_name == "{{ .modelName }}" then
+                                upstream_name = "vllm-{{ .modelName }}"
+                            end
+{{- end }}
                         end
                     end
                     
-                    ngx.var.model_name = model_name
+                    ngx.var.upstream = upstream_name
                 }
                 
-                proxy_pass http://$backend_service;
+                proxy_pass http://$upstream;
                 proxy_set_header Host $host;
                 proxy_set_header X-Real-IP $remote_addr;
                 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
